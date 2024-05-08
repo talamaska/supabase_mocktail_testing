@@ -42,10 +42,21 @@ class SupabaseUserClient {
   Future<void> saveAvatarFile(File avatarFile) async {
     try {
       final userId = currentUserId;
-
       await _supabaseClient
           .from('users')
-          .update({'has_avatar': true}).eq('id', userId);
+          .update({'has_avatar': true})
+          .eq('id', userId)
+          // This is a hack to workaround the fact that the supabase API
+          // is very difficult to mock. Without the `whenComplete`, it becomes
+          // very difficult to test the `saveAvatarFile` method because `PostgrestFilterBuilder`
+          // implements `Future` and we can't easily stub an `await` call.
+          // Another option would be to avoid using `pkg:mocktail` and to
+          // mock the networking layer with a local http server.
+          // See https://github.com/supabase/supabase-flutter/blob/main/packages/supabase/test/mock_test.dart
+          // Related issues:
+          // * https://github.com/supabase/supabase-flutter/issues/36
+          // * https://github.com/supabase/supabase-flutter/issues/864
+          .whenComplete(() {});
     } catch (error, stackTrace) {
       Error.throwWithStackTrace(
         SupabaseSaveAvatarFailure(error),
